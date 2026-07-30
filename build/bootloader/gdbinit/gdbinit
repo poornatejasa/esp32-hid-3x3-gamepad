@@ -1,0 +1,2 @@
+source D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader/gdbinit/symbols
+source D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader/gdbinit/connect

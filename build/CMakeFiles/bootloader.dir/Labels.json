@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/CMakeFiles/bootloader"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/CMakeFiles/bootloader.rule"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/CMakeFiles/bootloader-complete.rule"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule"
+		},
+		{
+			"file" : "D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"bootloader"
+		],
+		"name" : "bootloader"
+	}
+}

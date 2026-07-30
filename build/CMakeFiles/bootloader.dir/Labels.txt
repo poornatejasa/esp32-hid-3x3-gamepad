@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+D:/github/personal/esp32-hid-3x3-gamepad/build/CMakeFiles/bootloader
+D:/github/personal/esp32-hid-3x3-gamepad/build/CMakeFiles/bootloader.rule
+D:/github/personal/esp32-hid-3x3-gamepad/build/CMakeFiles/bootloader-complete.rule
+D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+D:/github/personal/esp32-hid-3x3-gamepad/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
