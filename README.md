@@ -1,67 +1,84 @@
-# esp32_hid_3x3_gamepad
+# ESP32 HID Firmware
 
-A modular Bluetooth Low Energy (BLE) Human Interface Device (HID) firmware built using ESP-IDF for the ESP32-S3.
+A modular Bluetooth Low Energy (BLE) Human Interface Device (HID) firmware built using **ESP-IDF** for the **ESP32-S3**.
 
-This project is a personal exploration of BLE HID firmware architecture, focusing on scalable design, clean abstractions, and extensibility. It serves as a foundation for building Bluetooth input devices such as gamepads, keyboards, custom controllers, and other HID peripherals.
+This project is a personal exploration of professional embedded firmware architecture, focusing on clean modular design, reusable components, and transport-independent HID implementation. It serves as a foundation for developing Bluetooth input devices such as keyboards, gamepads, custom controllers, and future USB HID devices.
 
 > **Status:** Active Development
 
 ---
 
-## Features
+# Features
 
 - BLE HID implementation using NimBLE
-- Matrix input scanning
-- Modular HID core
-- Secure pairing and bonding
-- Automatic reconnection
+- Keyboard HID over GATT Profile (HOGP)
+- Matrix-based input scanning
+- Modular HID Core
+- Secure BLE pairing and bonding
+- HID Report & Boot Protocol support
 - Layered firmware architecture
-- ESP-IDF based project
+- Component-based ESP-IDF project structure
+- Designed for future USB HID support
 
 ---
 
-## Firmware Architecture
+# Firmware Architecture
 
 ```
-          Application
-               │
-               ▼
-         Matrix Scanner
-               │
-               ▼
-          HID Core
-               │
-               ▼
-        BLE Transport
-               │
-               ▼
-         NimBLE Stack
-               │
-               ▼
-           ESP32-S3
+                    Application
+                         │
+                         ▼
+                  Matrix Component
+                         │
+                         ▼
+                  HID Core Component
+                         │
+                HID Reports & State
+                         │
+                         ▼
+                BLE Transport Component
+                         │
+                         ▼
+                  NimBLE Host Stack
+                         │
+                         ▼
+                      ESP32-S3
 ```
 
-Each module has a single responsibility:
+Each component has a single responsibility.
 
-- **Matrix** – Reads hardware inputs.
-- **HID Core** – Generates HID reports.
-- **BLE Transport** – Handles Bluetooth communication.
-- **Application** – Coordinates the firmware.
+| Component | Responsibility |
+|----------|----------------|
+| **main** | Application entry point and firmware coordination |
+| **matrix** | GPIO initialization and key matrix scanning |
+| **hid_core** | HID report generation, protocol state, report descriptors, LED state, control point |
+| **ble_transport** | BLE initialization, GAP, GATT, advertising, pairing, notifications |
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```
 .
+├── components/
+│   ├── matrix/
+│   │   ├── matrix.c
+│   │   ├── matrix.h
+│   │   └── CMakeLists.txt
+│   │
+│   ├── hid_core/
+│   │   ├── hid_core.c
+│   │   ├── hid_core.h
+│   │   └── CMakeLists.txt
+│   │
+│   └── ble_transport/
+│       ├── ble_transport.c
+│       ├── ble_transport.h
+│       └── CMakeLists.txt
+│
 ├── main/
 │   ├── main.c
-│   ├── matrix.c
-│   ├── matrix.h
-│   ├── hid_core.c
-│   ├── hid_core.h
-│   ├── ble_transport.c
-│   └── ble_transport.h
+│   └── CMakeLists.txt
 │
 ├── CMakeLists.txt
 ├── sdkconfig
@@ -71,31 +88,34 @@ Each module has a single responsibility:
 
 ---
 
-## Development Environment
+# Development Environment
 
 | Item | Value |
 |------|-------|
 | MCU | ESP32-S3 |
-| Framework | ESP-IDF |
+| Framework | ESP-IDF v5.4.x |
 | Bluetooth Stack | NimBLE |
 | IDE | Visual Studio Code |
 | Language | C |
+| Build System | CMake + Ninja |
 
 ---
 
-## Build
+# Build
+
+Build the project
 
 ```bash
 idf.py build
 ```
 
-Flash
+Flash the firmware
 
 ```bash
 idf.py flash
 ```
 
-Monitor
+Open serial monitor
 
 ```bash
 idf.py monitor
@@ -103,35 +123,60 @@ idf.py monitor
 
 ---
 
-## Design Goals
+# Current Architecture
 
-- Clean modular architecture
-- Reusable firmware components
+The firmware is organized into reusable components following a layered architecture.
+
+```
+Application
+     │
+     ▼
+ Matrix Component
+     │
+     ▼
+ HID Core
+     │
+     ▼
+ BLE Transport
+     │
+     ▼
+ NimBLE
+```
+
+This separation keeps the HID logic independent of the underlying transport, making future expansion significantly easier.
+
+---
+
+# Design Goals
+
+- Modular firmware architecture
+- Transport-independent HID implementation
 - Hardware abstraction
-- Transport-independent HID core
-- Easy feature expansion
+- Clean separation of responsibilities
+- Reusable embedded software components
 - Production-oriented codebase
+- Easy addition of future transport layers
 
 ---
 
-## Future Work
+# Roadmap
 
-This repository will evolve incrementally as new features are implemented and tested.
+Planned enhancements include:
 
-Examples include:
-
-- BLE OTA Firmware Updates
-- RGB LED Control
-- Device Configuration Service
-- Persistent Settings (NVS)
-- Companion Mobile Application
-- Multiple HID Profiles
-- Custom HID Report Descriptors
+- USB HID (TinyUSB)
+- Transport abstraction layer
+- Runtime HID profile switching
 - Battery Service
-- Additional HID Device Support
+- Device Information Service
+- OTA Firmware Updates
+- Persistent configuration (NVS)
+- Configurable key mapping
+- Multiple HID report descriptors
+- TinyML-based gesture recognition
+- Companion desktop/mobile configuration tool
 
 ---
 
-## License
+# License
 
-This project is intended for learning, experimentation, and embedded firmware development.
+This project is intended for learning, experimentation, and embedded firmware development using the ESP-IDF framework.
