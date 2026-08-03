@@ -1,6 +1,8 @@
 idf_component_register(
     SRCS 
         "ble_transport.c"
+        "ble_hid.c"
+        "ble_ota.c"
     INCLUDE_DIRS 
         "."
     REQUIRES 

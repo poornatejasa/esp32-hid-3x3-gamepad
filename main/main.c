@@ -1,7 +1,12 @@
 #include "matrix.h"
+
 #include "hid_core.h"
-#include "ble_transport.h"
+#include "ble_hid.h"
+
 #include "ota.h"
+#include "ble_ota.h"
+
+#include "ble_transport.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -30,7 +35,7 @@ void app_main(void){
 
             if (ble_transport_connected()){
                 const hid_gamepad_report_t *report = hid_get_report();
-                ble_transport_send_report((const uint8_t *)report, sizeof(*report));   
+                ble_hid_send_report((const uint8_t *)report, sizeof(*report));   
             }
         }
         vTaskDelay(pdMS_TO_TICKS(10));

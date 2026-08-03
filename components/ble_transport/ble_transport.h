@@ -9,5 +9,5 @@
 void ble_transport_init(void);
 
 bool ble_transport_connected(void);
-
-esp_err_t ble_transport_send_report(const uint8_t *report, size_t len);
+bool ble_transport_link_encrypted(void);
+uint16_t ble_transport_conn_handle(void);
