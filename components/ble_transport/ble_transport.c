@@ -254,7 +254,6 @@ static void ble_on_reset(int reason){
 }
 
 static void ble_on_sync(void){
-
     int rc;
 
     ESP_LOGI(TAG, "BLE Stack Synchronized");

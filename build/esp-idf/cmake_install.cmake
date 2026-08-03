@@ -559,6 +559,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/ota/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/ble_transport/cmake_install.cmake")
 endif()
 

@@ -1,6 +1,7 @@
 #include "matrix.h"
 #include "hid_core.h"
 #include "ble_transport.h"
+#include "ota.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
