@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "hid",
-    "project_version":    "d7bf552-dirty",
+    "project_version":    "51f4d15-dirty",
     "project_path":       "D:/github/personal/esp32-hid-3x3-gamepad",
     "idf_path":           "C:/esp/v5.4.4/esp-idf",
     "build_dir":          "D:/github/personal/esp32-hid-3x3-gamepad/build",

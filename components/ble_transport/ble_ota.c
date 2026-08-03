@@ -108,6 +108,10 @@ static int handle_control(struct ble_gatt_access_ctxt *ctxt){
 
     switch (cmd){
         case OTA_CMD_START:{
+            ESP_LOGI(TAG,
+            "Received START packet: %u bytes, Expected: %u bytes",
+            (unsigned)OS_MBUF_PKTLEN(ctxt->om),
+            (unsigned)sizeof(ota_start_packet_t));
             if (OS_MBUF_PKTLEN(ctxt->om) != sizeof(ota_start_packet_t)){
                 ESP_LOGE(TAG, "Invalid START packet");
                 return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;

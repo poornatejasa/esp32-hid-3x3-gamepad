@@ -157,16 +157,16 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg){
     switch (event->type){
         case BLE_GAP_EVENT_CONNECT:
             if (event->connect.status == 0){
-                int rc;
+                //int rc;
 
                 conn_handle = event->connect.conn_handle;
                 ESP_LOGI(TAG, "Connected");
 
-                rc = ble_gap_security_initiate(conn_handle);
+                /*rc = ble_gap_security_initiate(conn_handle);
                 ESP_LOGI(TAG, "ble_gap_security_initiate() = %d", rc);
                 if (rc != 0 && rc != BLE_HS_EALREADY) {
                     ESP_LOGE(TAG, "Failed to initiate pairing (%d)", rc);
-                }
+                }*/
             } else {
                 ESP_LOGW(TAG, "Connection attempt failed (%d)", event->connect.status);
                 ble_start_advertising();
@@ -279,6 +279,7 @@ static void ble_start_advertising(void){
 //-----------PUBLIC FUNCTIONS--------------
 
 void ble_transport_init(void){
+
     ble_init_nvs();
     ble_init_host();
     ble_init_security();

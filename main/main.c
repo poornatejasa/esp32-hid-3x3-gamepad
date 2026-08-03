@@ -10,6 +10,9 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_ota_ops.h"
+
+static const char *TAG = "MAIN";
 
 static void initialization(void){
     matrix_init();
@@ -18,6 +21,9 @@ static void initialization(void){
 }
 
 void app_main(void){
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    ESP_LOGI(TAG, "Running partition: %s", running->label);
+
     initialization();
     
     while (1){

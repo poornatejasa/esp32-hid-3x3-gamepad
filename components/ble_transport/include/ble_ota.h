@@ -1,6 +1,7 @@
 #pragma once
 
 #include "host/ble_gatt.h"
+#include <stdint.h>
 
 // OTA Commands
 typedef enum{
@@ -14,6 +15,7 @@ typedef enum{
 typedef struct __attribute__((packed)){
     uint8_t command;
     uint32_t image_size;
+    uint32_t crc32;
 } ota_start_packet_t;
 
 //STATUS Packet

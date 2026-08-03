@@ -39,8 +39,18 @@ void ota_reset(void){
 
 //-------------Operations-------------
 esp_err_t ota_begin(size_t image_size){
+    //if (ota_ctx.state != OTA_STATE_IDLE)
+    //    return ESP_ERR_INVALID_STATE;
+
+    ESP_LOGI(TAG, "ota_begin() called. State = %d", ota_ctx.state);
     if (ota_ctx.state != OTA_STATE_IDLE)
+    {
+        ESP_LOGE(TAG,
+                "OTA already running. Current state = %d",
+                ota_ctx.state);
+
         return ESP_ERR_INVALID_STATE;
+    }
 
     ota_ctx.partition = esp_ota_get_next_update_partition(NULL);
 
