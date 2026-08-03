@@ -15,3 +15,10 @@
 #define BOOT_KEYBOARD_OUTPUT_UUID     0x2A32
 
 #define REPORT_REFERENCE_UUID        0x2908
+
+//--------------------------OTA UUIDs-----------------------------
+
+#define OTA_SERVICE_UUID      0xFFF0
+#define OTA_CONTROL_UUID      0xFFF1
+#define OTA_DATA_UUID         0xFFF2
+#define OTA_STATUS_UUID       0xFFF3

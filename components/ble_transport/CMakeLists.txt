@@ -4,9 +4,10 @@ idf_component_register(
         "ble_hid.c"
         "ble_ota.c"
     INCLUDE_DIRS 
-        "."
+        "include"
     REQUIRES 
         bt 
         nvs_flash
         hid_core
+        ota
 )

@@ -20,7 +20,7 @@ static uint16_t boot_keyboard_input_handle;
 static bool report_notifications_enabled;
 static bool boot_notifications_enabled;
 
-static int ble_gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle,
+static int ble_hid_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                               struct ble_gatt_access_ctxt *ctxt, void *arg);
 
 //--------------------GATT Service Variable----------------------
@@ -35,27 +35,27 @@ const struct ble_gatt_svc_def hid_gatt_svcs[] ={
             // HID Information
             {
                   .uuid = BLE_UUID16_DECLARE(HID_INFORMATION_UUID),
-                .access_cb = ble_gatt_access_cb,
+                .access_cb = ble_hid_access_cb,
                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_READ_ENC,
             },  
 
             // Report Map
             {
                 .uuid = BLE_UUID16_DECLARE(HID_REPORT_MAP_UUID),
-                .access_cb = ble_gatt_access_cb,
+                .access_cb = ble_hid_access_cb,
                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_READ_ENC,
             },
             // Protocol Mode
             {
                 .uuid = BLE_UUID16_DECLARE(HID_PROTOCOL_MODE_UUID),
-                .access_cb = ble_gatt_access_cb,
+                .access_cb = ble_hid_access_cb,
                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE |
                          BLE_GATT_CHR_F_READ_ENC | BLE_GATT_CHR_F_WRITE_ENC,
             },
             // Input Report
             {
                 .uuid = BLE_UUID16_DECLARE(HID_REPORT_UUID),
-                .access_cb = ble_gatt_access_cb,
+                .access_cb = ble_hid_access_cb,
                 .val_handle = &hid_input_report_handle,
                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_NOTIFY |
                          BLE_GATT_CHR_F_READ_ENC |
@@ -65,7 +65,7 @@ const struct ble_gatt_svc_def hid_gatt_svcs[] ={
                     {
                         .uuid = BLE_UUID16_DECLARE(REPORT_REFERENCE_UUID),
                         .att_flags = BLE_ATT_F_READ | BLE_ATT_F_READ_ENC,
-                        .access_cb = ble_gatt_access_cb,
+                        .access_cb = ble_hid_access_cb,
                     },
                     {0}
                 },
@@ -75,7 +75,7 @@ const struct ble_gatt_svc_def hid_gatt_svcs[] ={
             // characteristic above.
             {
                 .uuid = BLE_UUID16_DECLARE(BOOT_KEYBOARD_INPUT_UUID),
-                .access_cb = ble_gatt_access_cb,
+                .access_cb = ble_hid_access_cb,
                 .val_handle = &boot_keyboard_input_handle,
                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_NOTIFY |
                          BLE_GATT_CHR_F_READ_ENC |
@@ -86,7 +86,7 @@ const struct ble_gatt_svc_def hid_gatt_svcs[] ={
             // report even if the device itself ignores the LED state.
             {
                 .uuid = BLE_UUID16_DECLARE(HID_REPORT_UUID),
-                .access_cb = ble_gatt_access_cb,
+                .access_cb = ble_hid_access_cb,
                 .val_handle = &hid_output_report_handle,
                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE |
                          BLE_GATT_CHR_F_READ_ENC | BLE_GATT_CHR_F_WRITE_ENC,
@@ -95,7 +95,7 @@ const struct ble_gatt_svc_def hid_gatt_svcs[] ={
                     {
                         .uuid = BLE_UUID16_DECLARE(REPORT_REFERENCE_UUID),
                         .att_flags = BLE_ATT_F_READ | BLE_ATT_F_READ_ENC,
-                        .access_cb = ble_gatt_access_cb,
+                        .access_cb = ble_hid_access_cb,
                     },
                     {0}
                 },
@@ -104,14 +104,14 @@ const struct ble_gatt_svc_def hid_gatt_svcs[] ={
             // Boot protocol.
             {
                 .uuid = BLE_UUID16_DECLARE(BOOT_KEYBOARD_OUTPUT_UUID),
-                .access_cb = ble_gatt_access_cb,
+                .access_cb = ble_hid_access_cb,
                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE |
                          BLE_GATT_CHR_F_READ_ENC | BLE_GATT_CHR_F_WRITE_ENC,
             },
             // HID Control Point
             {
                 .uuid = BLE_UUID16_DECLARE(HID_CONTROL_POINT_UUID),
-                .access_cb = ble_gatt_access_cb,
+                .access_cb = ble_hid_access_cb,
                 .flags = BLE_GATT_CHR_F_WRITE_NO_RSP | BLE_GATT_CHR_F_WRITE_ENC,
             },
 
@@ -123,7 +123,7 @@ const struct ble_gatt_svc_def hid_gatt_svcs[] ={
 };
 
 //-----------------GATT--------------------
-static int ble_gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle,
+static int ble_hid_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                               struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     const hid_gamepad_report_t *report = hid_get_report();
@@ -236,6 +236,7 @@ static int ble_gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle,
     }
 }
 
+//--------------Public API-----------------
 void ble_hid_handle_subscribe(const struct ble_gap_event *event){
     if (event->subscribe.attr_handle == hid_input_report_handle){
         report_notifications_enabled = event->subscribe.cur_notify;

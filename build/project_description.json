@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "hid",
-    "project_version":    "78d8ff8-dirty",
+    "project_version":    "d7bf552-dirty",
     "project_path":       "D:/github/personal/esp32-hid-3x3-gamepad",
     "idf_path":           "C:/esp/v5.4.4/esp-idf",
     "build_dir":          "D:/github/personal/esp32-hid-3x3-gamepad/build",
@@ -65,13 +65,13 @@
             "dir": "D:/github/personal/esp32-hid-3x3-gamepad/components/ble_transport",
             "type": "LIBRARY",
             "lib": "__idf_ble_transport",
-            "reqs": [ "bt", "nvs_flash", "hid_core" ],
+            "reqs": [ "bt", "nvs_flash", "hid_core", "ota" ],
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/ble_transport/libble_transport.a",
             "sources": [ "D:/github/personal/esp32-hid-3x3-gamepad/components/ble_transport/ble_transport.c", "D:/github/personal/esp32-hid-3x3-gamepad/components/ble_transport/ble_hid.c", "D:/github/personal/esp32-hid-3x3-gamepad/components/ble_transport/ble_ota.c" ],
-            "include_dirs": [ "." ]
+            "include_dirs": [ "include" ]
         },
         "bootloader": {
             "alias": "idf::bootloader",
@@ -2925,11 +2925,11 @@
             "prefix": "idf",
             "dir": "D:/github/personal/esp32-hid-3x3-gamepad/components/ble_transport",
             "lib": "__idf_ble_transport",
-            "reqs": [ "bt", "nvs_flash", "hid_core" ],
+            "reqs": [ "bt", "nvs_flash", "hid_core", "ota" ],
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
-            "include_dirs": [ "." ]
+            "include_dirs": [ "include" ]
         },
         "hid_core": {
             "alias": "idf::hid_core",
