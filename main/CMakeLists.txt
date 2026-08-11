@@ -6,5 +6,6 @@ idf_component_register(
     REQUIRES 
         matrix
         hid_core
-        ble_transport
+        ota
+        ble
 )

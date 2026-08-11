@@ -86,5 +86,6 @@ $<TARGET_FILE:__idf_spiffs>
 $<TARGET_FILE:__idf_wifi_provisioning>
 $<TARGET_FILE:__idf_matrix>
 $<TARGET_FILE:__idf_hid_core>
-$<TARGET_FILE:__idf_ble_transport>
+$<TARGET_FILE:__idf_ota>
+$<TARGET_FILE:__idf_ble>
 $<TARGET_FILE:__idf_main>

@@ -290,7 +290,7 @@ SECTIONS
     _flash_rodata_dummy_start = .;
     . = ALIGN(ALIGNOF(.flash.text)) + SIZEOF(.flash.text);
     /* Add alignment of MMU page size + 0x20 bytes for the mapping header. */
-    . = ALIGN(0x8000) + 0x20;
+    . = ALIGN(0x10000) + 0x20;
   } > default_rodata_seg
   .flash.appdesc : ALIGN(0x10)
   {

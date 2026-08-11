@@ -86,5 +86,6 @@ D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/spiffs/libspiffs.a
 D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/wifi_provisioning/libwifi_provisioning.a
 D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/matrix/libmatrix.a
 D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/hid_core/libhid_core.a
-D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/ble_transport/libble_transport.a
+D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/ota/libota.a
+D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/ble/libble.a
 D:/github/personal/esp32-hid-3x3-gamepad/build/esp-idf/main/libmain.a

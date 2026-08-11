@@ -46,7 +46,7 @@ MEMORY
    *  are connected to the data port of the CPU and eg allow byte-wise access.
    */
   /* Flash mapped instruction data */
-  irom_seg (RX) : org = 0x42000020, len = (0x8000 << 8) - 0x20
+  irom_seg (RX) : org = 0x42000020, len = (0x10000 << 8) - 0x20
   /**
    * (0x20 offset above is a convenience for the app binary image generation.
    * Flash cache has 64KB pages. The .bin file which is flashed to the chip
@@ -60,7 +60,7 @@ MEMORY
    */
   sram_seg (RWX) : org = 0x40800000, len = 0x4086E610 - 0x40800000
   /* Flash mapped constant data */
-  drom_seg (R) : org = 0x42000020, len = (0x8000 << 8) - 0x20
+  drom_seg (R) : org = 0x42000020, len = (0x10000 << 8) - 0x20
   /* (See irom_seg for meaning of 0x20 offset in the above.) */
   /**
    * lp ram memory (RWX). Persists over deep sleep. // TODO: IDF-5667
