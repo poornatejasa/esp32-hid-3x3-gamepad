@@ -5,6 +5,7 @@
 
 // OTA Commands
 typedef enum{
+    OTA_CMD_ENTER  = 0x00,
     OTA_CMD_START  = 0x01,
     OTA_CMD_END    = 0x02,
     OTA_CMD_ABORT  = 0x03,
@@ -28,3 +29,4 @@ typedef struct __attribute__((packed)){
 
 // GATT Service
 extern const struct ble_gatt_svc_def ota_gatt_svcs[];
+void ble_ota_handle_disconnect(uint16_t conn_handle);

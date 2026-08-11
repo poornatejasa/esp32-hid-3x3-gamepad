@@ -1,0 +1,15 @@
+idf_component_register(
+    SRCS 
+        "transport/ble_transport.c"
+        "services/ble_hid.c"
+        "services/ble_ota.c"
+        "services/ble_device_info.c"
+        "control/ble_control.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        bt 
+        nvs_flash
+        hid_core
+        ota
+)

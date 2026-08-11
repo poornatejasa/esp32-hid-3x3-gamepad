@@ -2,6 +2,15 @@
 
 #define BLE_DEVICE_NAME    "Poorna_GAMR"
 
+//---------------- Device Information UUIDs ---------------------
+
+#define DEVICE_INFO_SERVICE_UUID             0x180A
+#define DEVICE_INFO_MODEL_NUMBER_UUID        0x2A24
+#define DEVICE_INFO_SERIAL_NUMBER_UUID       0x2A25
+#define DEVICE_INFO_FIRMWARE_REVISION_UUID   0x2A26
+#define DEVICE_INFO_HARDWARE_REVISION_UUID   0x2A27
+#define DEVICE_INFO_MANUFACTURER_NAME_UUID   0x2A29
+
 //---------------------HID UUIDs---------------------------------
 
 #define HID_SERVICE_UUID             0x1812
@@ -22,3 +31,6 @@
 #define OTA_CONTROL_UUID      0xFFF1
 #define OTA_DATA_UUID         0xFFF2
 #define OTA_STATUS_UUID       0xFFF3
+#define CONTROL_SERVICE_UUID      0xFFF5
+#define CONTROL_CHARACTERISTIC_UUID 0xFFF6
+

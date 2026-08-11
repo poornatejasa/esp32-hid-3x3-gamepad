@@ -2,6 +2,7 @@
 
 #include "esp_ota_ops.h"
 #include "esp_log.h"
+#include "esp_crc.h"
 
 #include "esp_partition.h"
 #include "esp_system.h"
@@ -15,6 +16,8 @@ typedef struct{
     const esp_partition_t *partition;
     size_t total_size;
     size_t bytes_received;
+    uint32_t expected_crc32;
+    uint32_t calculated_crc32;
 } ota_context_t;
 
 static ota_context_t ota_ctx;
@@ -35,10 +38,12 @@ void ota_reset(void){
     ota_ctx.partition = NULL;
     ota_ctx.total_size = 0;
     ota_ctx.bytes_received = 0;
+    ota_ctx.expected_crc32 = 0;
+    ota_ctx.calculated_crc32 = 0;
 }
 
 //-------------Operations-------------
-esp_err_t ota_begin(size_t image_size){
+esp_err_t ota_begin(size_t image_size, uint32_t expected_crc32){
     //if (ota_ctx.state != OTA_STATE_IDLE)
     //    return ESP_ERR_INVALID_STATE;
 
@@ -69,6 +74,8 @@ esp_err_t ota_begin(size_t image_size){
 
     ota_ctx.total_size = image_size;
     ota_ctx.bytes_received = 0;
+    ota_ctx.expected_crc32 = expected_crc32;
+    ota_ctx.calculated_crc32 = 0;
     ota_ctx.state = OTA_STATE_STARTED;
 
     return ESP_OK;
@@ -90,6 +97,8 @@ esp_err_t ota_write(const uint8_t *data, size_t length){
     }
 
     ota_ctx.bytes_received += length;
+    ota_ctx.calculated_crc32 = esp_crc32_le(ota_ctx.calculated_crc32,
+                                            data, length);
 
     ota_ctx.state = OTA_STATE_RECEIVING;
 
@@ -99,10 +108,31 @@ esp_err_t ota_write(const uint8_t *data, size_t length){
 esp_err_t ota_finish(void){
     if (ota_ctx.state != OTA_STATE_RECEIVING)
         return ESP_ERR_INVALID_STATE;
+
+    if (ota_ctx.bytes_received != ota_ctx.total_size) {
+        ESP_LOGE(TAG, "Image size mismatch: received=%u expected=%u",
+                 (unsigned)ota_ctx.bytes_received, (unsigned)ota_ctx.total_size);
+        esp_ota_abort(ota_ctx.handle);
+        ota_ctx.handle = 0;
+        ota_ctx.state = OTA_STATE_FAILED;
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    if (ota_ctx.calculated_crc32 != ota_ctx.expected_crc32) {
+        ESP_LOGE(TAG, "Image CRC mismatch: received=0x%08lX expected=0x%08lX",
+                 (unsigned long)ota_ctx.calculated_crc32,
+                 (unsigned long)ota_ctx.expected_crc32);
+        esp_ota_abort(ota_ctx.handle);
+        ota_ctx.handle = 0;
+        ota_ctx.state = OTA_STATE_FAILED;
+        return ESP_ERR_INVALID_CRC;
+    }
+
     ESP_LOGI(TAG, "Verifying firmware...");
 
     ota_ctx.state = OTA_STATE_VERIFYING;
     esp_err_t err = esp_ota_end(ota_ctx.handle);
+    ota_ctx.handle = 0;
 
     if (err != ESP_OK){
         ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(err));
@@ -133,7 +163,7 @@ void ota_reboot(void){
 }
 
 void ota_abort(void){
-    if (ota_ctx.state == OTA_STATE_STARTED || ota_ctx.state == OTA_STATE_RECEIVING){
+    if (ota_ctx.handle != 0 && ota_ctx.state != OTA_STATE_COMPLETED){
         esp_ota_abort(ota_ctx.handle);
         ESP_LOGW(TAG, "OTA aborted");
     }

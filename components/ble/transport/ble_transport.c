@@ -1,8 +1,10 @@
 #include "ble_transport.h"
 #include "hid_core.h"
+#include "ble_device_info.h"
 #include "ble_hid.h"
 #include "ble_uuid.h"
 #include "ble_ota.h"
+#include "ble_control.h"
 
 #include <assert.h>
 #include <string.h>
@@ -32,9 +34,13 @@ void ble_store_config_init(void);
 //--------------------------Variables-----------------------------
 static const char *TAG = "BLE";
 
+typedef struct {
+    uint16_t conn_handle;
+    bool encrypted;
+} ble_connection_t;
+
 static uint8_t own_addr_type;
-static uint16_t conn_handle = BLE_HS_CONN_HANDLE_NONE;
-static bool link_encrypted;
+static ble_connection_t connection;
 
 // ---------------------Function Prototypes-----------------------
 
@@ -50,7 +56,9 @@ static void ble_on_sync(void);
 static int ble_gap_event(struct ble_gap_event *event, void *arg);
 
 static void ble_start_advertising(void);  
-
+static ble_connection_t *ble_find_connection(uint16_t conn_handle);
+static bool ble_add_connection(uint16_t conn_handle);
+static void ble_remove_connection(uint16_t conn_handle);
 
 //---------------------------------------------------------------
 //---------------------FUNCTION DEFINITIONS----------------------
@@ -86,7 +94,7 @@ static void ble_init_security(void){
     ble_hs_cfg.sm_io_cap = BLE_HS_IO_NO_INPUT_OUTPUT;
     ble_hs_cfg.sm_bonding = 1;
     ble_hs_cfg.sm_mitm = 0;
-    ble_hs_cfg.sm_sc = 1;
+    ble_hs_cfg.sm_sc = 0;
     ble_hs_cfg.sm_our_key_dist |= BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
     ble_hs_cfg.sm_their_key_dist |= BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
@@ -105,22 +113,31 @@ static void ble_init_services(void){
 
 static void ble_gatt_init(void){
     int rc;
-
-    /* Count GATT resources */
+    /*
+     * Keep the GATT database identical in normal and OTA modes.  Windows
+     * caches attribute handles for bonded devices; changing the service list
+     * after reboot makes it issue writes to stale handles.
+     */
     rc = ble_gatts_count_cfg(hid_gatt_svcs);
     assert(rc == 0);
-
+    rc = ble_gatts_count_cfg(control_gatt_svcs);
+    assert(rc == 0);
     rc = ble_gatts_count_cfg(ota_gatt_svcs);
     assert(rc == 0);
+    rc = ble_gatts_count_cfg(device_info_gatt_svcs);
+    assert(rc == 0);
 
-    /* Register GATT services */
     rc = ble_gatts_add_svcs(hid_gatt_svcs);
     assert(rc == 0);
-
+    rc = ble_gatts_add_svcs(control_gatt_svcs);
+    assert(rc == 0);
     rc = ble_gatts_add_svcs(ota_gatt_svcs);
     assert(rc == 0);
+    // Append new services so existing cached HID/control/OTA handles remain stable.
+    rc = ble_gatts_add_svcs(device_info_gatt_svcs);
+    assert(rc == 0);
 
-    ESP_LOGI(TAG, "GATT services registered");
+    ESP_LOGI(TAG, "HID, control, OTA, and device-info GATT services registered");
 }
 
 //------------GAP CALL BACKS--------------
@@ -153,27 +170,57 @@ static void ble_on_sync(void){
     ble_start_advertising();
 }
 
+static ble_connection_t *ble_find_connection(uint16_t conn_handle)
+{
+    return connection.conn_handle == conn_handle ? &connection : NULL;
+}
+
+static bool ble_add_connection(uint16_t conn_handle)
+{
+    if (connection.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+        return false;
+    }
+
+    connection.conn_handle = conn_handle;
+    connection.encrypted = false;
+    return true;
+}
+
+static void ble_remove_connection(uint16_t conn_handle)
+{
+    ble_connection_t *connection = ble_find_connection(conn_handle);
+    if (connection != NULL) {
+        connection->conn_handle = BLE_HS_CONN_HANDLE_NONE;
+        connection->encrypted = false;
+    }
+}
+
 static int ble_gap_event(struct ble_gap_event *event, void *arg){
     switch (event->type){
-        case BLE_GAP_EVENT_CONNECT:
-            if (event->connect.status == 0){
-                //int rc;
 
-                conn_handle = event->connect.conn_handle;
+        case BLE_GAP_EVENT_CONNECT:{
+            if (event->connect.status == 0){
+                if (!ble_add_connection(event->connect.conn_handle)) {
+                    ESP_LOGW(TAG, "Connection limit reached");
+                    ble_gap_terminate(event->connect.conn_handle,
+                                      BLE_ERR_REM_USER_CONN_TERM);
+                    break;
+                }
                 ESP_LOGI(TAG, "Connected");
 
-                /*rc = ble_gap_security_initiate(conn_handle);
-                ESP_LOGI(TAG, "ble_gap_security_initiate() = %d", rc);
+                int rc = ble_gap_security_initiate(event->connect.conn_handle);
                 if (rc != 0 && rc != BLE_HS_EALREADY) {
                     ESP_LOGE(TAG, "Failed to initiate pairing (%d)", rc);
-                }*/
+                }
+
             } else {
                 ESP_LOGW(TAG, "Connection attempt failed (%d)", event->connect.status);
                 ble_start_advertising();
             }
             break;
+        }
 
-        case BLE_GAP_EVENT_ENC_CHANGE:
+        /*case BLE_GAP_EVENT_ENC_CHANGE:{
             if (event->enc_change.status == 0) {
                 link_encrypted = true;
                 ESP_LOGI(TAG, "BLE link encrypted");
@@ -183,14 +230,43 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg){
                          event->enc_change.status);
             }
             break;
+        }*/
 
-        case BLE_GAP_EVENT_DISCONNECT:
-            conn_handle = BLE_HS_CONN_HANDLE_NONE;
-            ble_hid_reset();
-            link_encrypted = false;
+        case BLE_GAP_EVENT_ENC_CHANGE:{
+            struct ble_gap_conn_desc desc;
+            int rc = ble_gap_conn_find(event->enc_change.conn_handle, &desc);
+
+            if (event->enc_change.status == 0 && rc == 0 && desc.sec_state.encrypted){
+                ble_connection_t *connection =
+                    ble_find_connection(event->enc_change.conn_handle);
+                if (connection != NULL) {
+                    connection->encrypted = true;
+                }
+                ESP_LOGI(TAG, "Encrypted=%d Bonded=%d Authenticated=%d",
+                        desc.sec_state.encrypted, desc.sec_state.bonded,
+                        desc.sec_state.authenticated);
+                ESP_LOGI(TAG, "BLE link encrypted");
+            }
+            else{
+                ble_connection_t *connection =
+                    ble_find_connection(event->enc_change.conn_handle);
+                if (connection != NULL) {
+                    connection->encrypted = false;
+                }
+                ESP_LOGE(TAG, "Pairing/encryption failed (status=%d, desc=%d)",
+                         event->enc_change.status, rc);
+            }
+            break;
+        }
+
+        case BLE_GAP_EVENT_DISCONNECT:{
+            ble_hid_handle_disconnect(event->disconnect.conn.conn_handle);
+            ble_ota_handle_disconnect(event->disconnect.conn.conn_handle);
+            ble_remove_connection(event->disconnect.conn.conn_handle);
             ESP_LOGI(TAG, "Disconnected (reason = %d)", event->disconnect.reason);
             ble_start_advertising();
             break;
+        }
 
         case BLE_GAP_EVENT_REPEAT_PAIRING: {
             struct ble_gap_conn_desc desc;
@@ -207,9 +283,15 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg){
             return BLE_GAP_REPEAT_PAIRING_IGNORE;
         }
 
-        case BLE_GAP_EVENT_SUBSCRIBE:
+        case BLE_GAP_EVENT_SUBSCRIBE:{
             ble_hid_handle_subscribe(event);
             break;
+        }
+
+        case BLE_GAP_EVENT_PASSKEY_ACTION:{
+            ESP_LOGI(TAG, "PASSKEY ACTION = %d", event->passkey.params.action);
+            return 0;
+        }
     }
     return 0;
 }
@@ -221,6 +303,16 @@ static void ble_start_advertising(void){
 
     memset(&fields, 0, sizeof(fields));
 
+    if (ble_transport_connected()) {
+        ESP_LOGI(TAG, "Advertising paused while the device is connected");
+        return;
+    }
+
+    if (ble_gap_adv_active()) {
+        ESP_LOGI(TAG, "Advertising already active");
+        return;
+    }
+
     int rc;
     //static const ble_uuid16_t adv_uuids[] = {
     //    BLE_UUID16_INIT(HID_SERVICE_UUID),
@@ -228,20 +320,20 @@ static void ble_start_advertising(void){
     fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
 
     const char *name = BLE_DEVICE_NAME;
-
-    fields.name = (uint8_t *)BLE_DEVICE_NAME;
-    fields.name_len = strlen(BLE_DEVICE_NAME);
-    fields.name_is_complete = 1;
-    
-    fields.appearance = 961; // Generic Keyboard
+    fields.appearance = 961;      // Keyboard
     fields.appearance_is_present = 1;
 
+    fields.name = (uint8_t *)name;
+    fields.name_len = strlen(name);
+    fields.name_is_complete = 1;
+
     static const ble_uuid16_t adv_svcs[] = {
-        BLE_UUID16_INIT(HID_SERVICE_UUID)
+        BLE_UUID16_INIT(HID_SERVICE_UUID),
+        BLE_UUID16_INIT(OTA_SERVICE_UUID),
     };
 
     fields.uuids16 = adv_svcs;
-    fields.num_uuids16 = 1;
+    fields.num_uuids16 = sizeof(adv_svcs) / sizeof(adv_svcs[0]);
     fields.uuids16_is_complete = 1;
 
     rc = ble_gap_adv_set_fields(&fields);
@@ -280,10 +372,14 @@ static void ble_start_advertising(void){
 
 void ble_transport_init(void){
 
+    connection.conn_handle = BLE_HS_CONN_HANDLE_NONE;
+    connection.encrypted = false;
+
     ble_init_nvs();
     ble_init_host();
     ble_init_security();
     ble_init_services();
+    ble_device_info_init();
 
     ble_gatt_init();
 
@@ -295,13 +391,10 @@ void ble_transport_init(void){
 
 //----------Helpers------------
 bool ble_transport_connected(void){
-    return (conn_handle != BLE_HS_CONN_HANDLE_NONE);
+    return connection.conn_handle != BLE_HS_CONN_HANDLE_NONE;
 }
 
-bool ble_transport_link_encrypted(void){
-    return link_encrypted;
-}
-
-uint16_t ble_transport_conn_handle(void){
-    return conn_handle;
+bool ble_transport_link_encrypted(uint16_t conn_handle){
+    ble_connection_t *connection = ble_find_connection(conn_handle);
+    return connection != NULL && connection->encrypted;
 }

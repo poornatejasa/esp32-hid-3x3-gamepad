@@ -7,5 +7,5 @@ idf_component_register(
         matrix
         hid_core
         ota
-        ble_transport
+        ble
 )

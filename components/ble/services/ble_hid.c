@@ -19,6 +19,8 @@ static uint16_t boot_keyboard_input_handle;
 
 static bool report_notifications_enabled;
 static bool boot_notifications_enabled;
+static uint16_t report_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+static uint16_t boot_conn_handle = BLE_HS_CONN_HANDLE_NONE;
 
 static int ble_hid_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                               struct ble_gatt_access_ctxt *ctxt, void *arg);
@@ -240,26 +242,50 @@ static int ble_hid_access_cb(uint16_t conn_handle, uint16_t attr_handle,
 void ble_hid_handle_subscribe(const struct ble_gap_event *event){
     if (event->subscribe.attr_handle == hid_input_report_handle){
         report_notifications_enabled = event->subscribe.cur_notify;
+        report_conn_handle = event->subscribe.cur_notify
+                                 ? event->subscribe.conn_handle
+                                 : BLE_HS_CONN_HANDLE_NONE;
 
         ESP_LOGI(TAG, "Report notifications %s",
                  report_notifications_enabled ? "Enabled" : "Disabled");
     }
     else if (event->subscribe.attr_handle == boot_keyboard_input_handle){
         boot_notifications_enabled = event->subscribe.cur_notify;
+        boot_conn_handle = event->subscribe.cur_notify
+                               ? event->subscribe.conn_handle
+                               : BLE_HS_CONN_HANDLE_NONE;
 
         ESP_LOGI(TAG,"Boot notifications %s",
                  boot_notifications_enabled ? "Enabled" : "Disabled");
     }
 }
 
-void ble_hid_reset(void){
-    report_notifications_enabled = false;
-    boot_notifications_enabled = false;
+void ble_hid_handle_disconnect(uint16_t conn_handle){
+    if (report_conn_handle == conn_handle) {
+        report_notifications_enabled = false;
+        report_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+    }
+    if (boot_conn_handle == conn_handle) {
+        boot_notifications_enabled = false;
+        boot_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+    }
+}
+
+bool ble_hid_can_send_report(void){
+    const bool boot_protocol = hid_get_protocol_mode() == 0;
+    const uint16_t report_handle = boot_protocol ? boot_conn_handle : report_conn_handle;
+    const bool notifications_enabled = boot_protocol
+                                           ? boot_notifications_enabled
+                                           : report_notifications_enabled;
+
+    return report_handle != BLE_HS_CONN_HANDLE_NONE && notifications_enabled &&
+           ble_transport_link_encrypted(report_handle);
 }
 
 esp_err_t ble_hid_send_report(const uint8_t *report, size_t len){ 
     struct os_mbuf *om;
     uint16_t report_handle = hid_input_report_handle;
+    uint16_t target_conn_handle = report_conn_handle;
     bool notifications_enabled = report_notifications_enabled;
 
     // The Report Reference descriptor provides Report ID 1 for the Report
@@ -268,14 +294,11 @@ esp_err_t ble_hid_send_report(const uint8_t *report, size_t len){
     if (hid_get_protocol_mode() == 0) {
         report_handle = boot_keyboard_input_handle;
         notifications_enabled = boot_notifications_enabled;
+        target_conn_handle = boot_conn_handle;
     }
 
-    if (!ble_transport_connected()){
-        ESP_LOGW(TAG, "No BLE connection");
-        return ESP_FAIL;
-    }
-
-    if (!ble_transport_link_encrypted()) {
+    if (target_conn_handle == BLE_HS_CONN_HANDLE_NONE ||
+        !ble_transport_link_encrypted(target_conn_handle)) {
         ESP_LOGW(TAG, "BLE link is not encrypted yet");
         return ESP_ERR_INVALID_STATE;
     }
@@ -292,7 +315,7 @@ esp_err_t ble_hid_send_report(const uint8_t *report, size_t len){
         return ESP_ERR_NO_MEM;
     }
 
-    int rc = ble_gatts_notify_custom(ble_transport_conn_handle(), report_handle, om);
+    int rc = ble_gatts_notify_custom(target_conn_handle, report_handle, om);
 
     if (rc != 0){
         ESP_LOGE(TAG, "Notify failed (%d)", rc);

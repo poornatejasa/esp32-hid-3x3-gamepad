@@ -24,6 +24,6 @@ size_t ota_get_bytes_received(void);
 size_t ota_get_total_size(void);
 uint8_t ota_get_progress(void);
 
-esp_err_t ota_begin(size_t firmware_size);
+esp_err_t ota_begin(size_t firmware_size, uint32_t expected_crc32);
 esp_err_t ota_write(const uint8_t *data, size_t length);
 esp_err_t ota_finish(void);

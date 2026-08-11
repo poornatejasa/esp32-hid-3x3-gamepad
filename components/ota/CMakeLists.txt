@@ -5,5 +5,5 @@ idf_component_register(
         "."
     REQUIRES 
         app_update
-        
+        esp_hw_support
 )
