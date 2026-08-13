@@ -90,7 +90,20 @@ static void ble_init_host(void){
 }
 
 static void ble_init_security(void){
-    // Windows expects a BLE keyboard to use a bonded, encrypted connection.
+    /*
+     * Production BLE baseline:
+     * - bonded, encrypted links only;
+     * - bonded, encrypted access compatible with current Windows and phone
+     *   HID pairing flows.
+     *
+     * The current hardware has neither a display nor a dedicated pairing
+     * confirmation input, so its pairing association remains Just Works.
+     * That gives confidentiality but not MITM authentication. Enabling the
+     * Secure Connections request on the current HID pairing path causes hosts
+     * to terminate pairing, so leave it disabled until a dedicated SC pairing
+     * test and a verified pairing UI (QR/NFC OOB, display passkey, or physical
+     * confirmation) are available. Do not enable sm_mitm / SC-only before it.
+     */
     ble_hs_cfg.sm_io_cap = BLE_HS_IO_NO_INPUT_OUTPUT;
     ble_hs_cfg.sm_bonding = 1;
     ble_hs_cfg.sm_mitm = 0;
@@ -101,7 +114,7 @@ static void ble_init_security(void){
 
     ble_store_config_init();
 
-    ESP_LOGI(TAG, "BLE security and bond store configured");
+    ESP_LOGI(TAG, "BLE bonding and encrypted access configured");
 }
 
 static void ble_init_services(void){
@@ -274,7 +287,12 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg){
 
             rc = ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc);
             if (rc == 0) {
-                ESP_LOGW(TAG, "Repeat pairing requested; deleting old bond");
+                /*
+                 * Compatibility behavior until the hardware has a local
+                 * pairing-window / factory-reset flow.  That future flow
+                 * must gate bond replacement on explicit user consent.
+                 */
+                ESP_LOGW(TAG, "Repeat pairing requested; replacing old bond");
                 ble_store_util_delete_peer(&desc.peer_id_addr);
                 return BLE_GAP_REPEAT_PAIRING_RETRY;
             }

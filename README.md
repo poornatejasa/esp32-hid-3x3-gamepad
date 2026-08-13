@@ -88,6 +88,19 @@ phone connection. A laptop owning the HID connection and a phone performing
 OTA are two different centrals; that requires multi-connection support and is
 intentionally not enabled in this firmware.
 
+## BLE security baseline
+
+The firmware uses bonded, encrypted BLE. Existing bonds should be deleted from
+the host and paired again after changing pairing settings.
+
+The hardware currently has no display, NFC/QR out-of-band channel, or
+dedicated pairing-confirmation control. Pairing therefore remains *Just
+Works*: traffic is encrypted, but the first pairing is not MITM-authenticated.
+Before release, add a deliberate local pairing window and one verified
+association method (preferably QR/NFC OOB for this screenless product), then
+implement and validate LE Secure Connections with MITM protection and
+Secure-Connections-only mode.
+
 ## Build and flash
 
 Use an ESP-IDF v5.4.x terminal configured for ESP32-C6:
@@ -135,6 +148,12 @@ The uploader uses the negotiated write-without-response payload (up to 512
 bytes) and throttles only in short bursts to avoid overflowing the Windows or
 NimBLE queues.
 
+On Windows, the uploader also lists paired GAMR devices remembered by the OS.
+This lets it attempt GATT access without a fresh advertisement when GAMR is
+already connected to the same laptop. Windows decides whether that HID-owned
+link is available to the uploader; this does not provide access to a device
+connected to a different phone or computer.
+
 ### Known-device connection attempt
 
 To attempt a direct Windows GATT connection without scanning:
@@ -171,9 +190,8 @@ link, writes to the inactive OTA slot, relies on ESP-IDF image validation in
 `esp_ota_end`, checks the declared image size and CRC32, then boots that slot.
 
 Secure boot, flash encryption, signed release images, rollback confirmation,
-and application-level authorization are planned production hardening work.
-Do not treat the present development OTA path as a finished secure release
-update system.
+and application-level authorization remain planned production hardening work.
+They are intentionally disabled during development so no eFuses are burned.
 
 ## Roadmap
 
@@ -184,3 +202,29 @@ update system.
 - Multiple HID report profiles (keyboard/gamepad)
 - Secure boot, flash encryption, signed OTA, and rollback policy
 - TinyML feature modules
+
+## Clone in a new ESP-IDF environment
+
+Use an ESP-IDF v5.4.x terminal on the new machine. The repository does not
+ship build output; regenerate it locally so CMake uses that machine's ESP-IDF
+path, compiler toolchain, target settings, and Python environment.
+
+```powershell
+git clone <company-repository-url>
+cd esp32-hid-3x3-gamepad
+
+# Run from an ESP-IDF v5.4.x terminal after its environment is exported.
+idf.py fullclean
+idf.py reconfigure
+idf.py build
+```
+
+Then connect the board and flash it:
+
+```powershell
+idf.py flash monitor
+```
+
+If `idf.py` is not recognized, open Espressif's **ESP-IDF PowerShell** (or run
+the `export.ps1` script for the installed ESP-IDF version) before running the
+commands above.

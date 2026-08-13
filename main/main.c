@@ -1,10 +1,7 @@
 #include "matrix.h"
-
 #include "hid_core.h"
 #include "ble_hid.h"
-
 #include "ota.h"
-
 #include "ble_transport.h"
 
 #include "freertos/FreeRTOS.h"
@@ -33,11 +30,11 @@ void app_main(void){
         while (matrix_get_event(&event)){
             if (event.type == MATRIX_EVENT_PRESS){
                 hid_core_press(event.key);
-                //printf("Key pressed: %d\n", event.key);
+                printf("Key pressed: %d\n", event.key);
             }
             else if (event.type == MATRIX_EVENT_RELEASE){
                 hid_core_release(event.key);
-                //printf("Key released: %d\n", event.key);
+                printf("Key released: %d\n", event.key);
             }
 
             if (ble_hid_can_send_report()){

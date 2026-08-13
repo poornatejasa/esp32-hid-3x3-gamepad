@@ -1,9 +1,11 @@
 import asyncio
 import argparse
 import struct
+import sys
 import zlib
 from pathlib import Path
 from bleak import BleakClient, BleakScanner
+from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 
 # -------------------------------------------------------
@@ -24,6 +26,14 @@ OTA_READY_RETRIES = 5
 OTA_READY_RETRY_SECONDS = 0.5
 OTA_CONNECT_RETRIES = 5
 PROGRESS_UPDATE_SECONDS = 0.25
+
+
+class DiscoveredDevice:
+    """A GAMR device found through advertising or Windows' paired-device cache."""
+
+    def __init__(self, device, source):
+        self.device = device
+        self.source = source
 
 # -------------------------------------------------------
 # OTA UUIDs
@@ -50,27 +60,97 @@ OTA_CMD_REBOOT = 0x04
 # Helper Functions
 # -------------------------------------------------------
 
-async def select_device(*names):
+def device_key(device):
+    return device.address.upper()
 
-    print(f"Scanning for {' or '.join(names)}...")
 
-    devices = await BleakScanner.discover(timeout=5)
-    matches = [device for device in devices if device.name in names]
+def windows_known_ble_device(address, name):
+    """Create a BLEDevice that makes Bleak's WinRT backend skip scanning."""
+    return BLEDevice(address, name, details=None)
+
+
+async def find_windows_known_devices():
+    """Return paired GAMR devices remembered by Windows, if any.
+
+    BleakScanner can only discover advertisements.  Windows also retains a
+    catalogue of paired BLE devices, which lets us attempt GATT access to a
+    GAMR HID device that is already known to this laptop.
+    """
+    if sys.platform != "win32":
+        return []
+
+    from winrt.windows.devices.bluetooth import BluetoothLEDevice
+    from winrt.windows.devices.enumeration import DeviceInformation
+
+    selector = BluetoothLEDevice.get_device_selector_from_pairing_state(True)
+    device_infos = await DeviceInformation.find_all_async_aqs_filter(selector)
+    matches = []
+
+    for info in device_infos:
+        if DEVICE_NAME.lower() not in info.name.lower():
+            continue
+
+        device = await BluetoothLEDevice.from_id_async(info.id)
+        if device is None:
+            continue
+
+        try:
+            address = f"{device.bluetooth_address:012X}"
+            address = ":".join(address[i:i + 2] for i in range(0, 12, 2))
+            matches.append(
+                DiscoveredDevice(
+                    windows_known_ble_device(address, info.name or DEVICE_NAME),
+                    "Windows paired device",
+                )
+            )
+        finally:
+            device.close()
+
+    return matches
+
+
+async def select_device():
+
+    print(f"Scanning for {DEVICE_NAME}...")
+    advertised = await BleakScanner.discover(timeout=5)
+    matches = [
+        DiscoveredDevice(device, "advertising")
+        for device in advertised
+        if device.name == DEVICE_NAME
+    ]
+
+    # Advertising is the preferred path.  Ask Windows for remembered paired
+    # devices only when no current advertisement was found.
+    known_devices = []
+    if not matches:
+        print("No GAMR advertisement found; checking Windows paired BLE devices...")
+        try:
+            known_devices = await find_windows_known_devices()
+        except OSError as exc:
+            # The advertisement path remains fully usable if Windows device
+            # enumeration is temporarily unavailable.
+            print(f"Could not read Windows paired devices: {exc}")
+
+    seen_addresses = {device_key(match.device) for match in matches}
+    for known in known_devices:
+        if device_key(known.device) not in seen_addresses:
+            matches.append(known)
+            seen_addresses.add(device_key(known.device))
 
     if not matches:
         return None
 
     if len(matches) == 1:
-        return matches[0]
+        return matches[0].device
 
-    print("Nearby GAMR devices:")
-    for index, device in enumerate(matches):
-        print(f"  [{index}] {device.name}  [{device.address}]")
+    print("Available GAMR devices:")
+    for index, match in enumerate(matches):
+        print(f"  [{index}] {match.device.name}  [{match.device.address}]  {match.source}")
 
     while True:
         try:
             selected = int(input("Select device: ").strip())
-            return matches[selected]
+            return matches[selected].device
         except (ValueError, IndexError):
             print("Enter one of the listed device numbers.")
 
@@ -314,16 +394,17 @@ async def main(device_address=None):
     # alternate OTA profile, so it remains a working HID device until the
     # update is successfully applied.
     if device_address:
-        # This mirrors the phone app's saved-device path. It can work when
-        # Windows already knows the bonded HID device and a scan is not useful.
-        device = device_address
-        print(f"Connecting to known GAMR device: {device_address}")
+        # Passing a string to BleakClient causes its WinRT backend to scan
+        # first. A BLEDevice carries the address directly and therefore tries
+        # the Windows GATT path without requiring a fresh advertisement.
+        device = windows_known_ble_device(device_address, DEVICE_NAME)
+        print(f"Connecting through Windows GATT: {device_address}")
     else:
         print("Searching for OTA-capable GAMR device...")
-        device = await select_device(DEVICE_NAME)
+        device = await select_device()
         if device is None:
-            print("No available GAMR device found. It may already be connected.")
-            print("Retry with --device <Bluetooth-address> to attempt a direct connection.")
+            print("No advertising or Windows-paired GAMR device found.")
+            print("Retry with --device <Bluetooth-address> to try a known device directly.")
             return
 
     client = await connect_to_ota_firmware(device)
